@@ -4,31 +4,29 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yterinc.CustomerContactInformation.models.Contact;
+import ru.yterinc.CustomerContactInformation.models.ContactType;
 import ru.yterinc.CustomerContactInformation.models.Customer;
-import ru.yterinc.CustomerContactInformation.models.Email;
-import ru.yterinc.CustomerContactInformation.models.Phone;
+import ru.yterinc.CustomerContactInformation.repositories.ContactRepository;
 import ru.yterinc.CustomerContactInformation.repositories.CustomerRepository;
-import ru.yterinc.CustomerContactInformation.repositories.EmailRepository;
-import ru.yterinc.CustomerContactInformation.repositories.PhoneRepository;
+import ru.yterinc.CustomerContactInformation.util.ContactNotValidException;
 import ru.yterinc.CustomerContactInformation.util.CustomerNotFoundException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Service
 @Transactional(readOnly = true)
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
-    private final EmailRepository emailRepository;
-    private final PhoneRepository phoneRepository;
+    private final ContactRepository contactRepository;
+
 
     @Autowired
-    public CustomerService(CustomerRepository customerRepository, EmailRepository emailRepository, PhoneRepository phoneRepository) {
+    public CustomerService(CustomerRepository customerRepository, ContactRepository contactRepository) {
         this.customerRepository = customerRepository;
-        this.emailRepository = emailRepository;
-        this.phoneRepository = phoneRepository;
+        this.contactRepository = contactRepository;
     }
 
     public List<Customer> findAll() {
@@ -46,30 +44,34 @@ public class CustomerService {
     }
 
     @Transactional
-    public void addEmail(Integer customerId, Email email) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
-        email.setCustomer(customer);
-        emailRepository.save(email);
+    public void addContact(Contact contact, int id) {
+        contact.setCustomer(customerRepository
+                .findById(id)
+                .orElseThrow(() -> new CustomerNotFoundException(String.format("Customer %s not found", id))));
+        switch (contact.getType()) {
+            case PHONE -> {
+                String regexPattern = "^((\\+7|7|8)+([0-9]){10})$";
+                if (!Pattern.compile(regexPattern).matcher(contact.getContactValue()).matches()) {
+                    throw new ContactNotValidException("The phone number is incorrect!");
+                }
+            }
+            case EMAIL -> {
+                String regexPattern = "^(\\S+)@([a-z0-9-]+)(\\.)([a-z]{2,4})(\\.?)([a-z]{0,4})+$";
+                if (!Pattern.compile(regexPattern).matcher(contact.getContactValue()).matches()) {
+                    throw new ContactNotValidException("The email is incorrect!");
+                }
+            }
+        }
+        contactRepository.save(contact);
     }
 
-    @Transactional
-    public void addPhone(Integer customerId, Phone phone) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
-        phone.setCustomer(customer);
-        phoneRepository.save(phone);
-    }
 
-    public List<Contact> getContactsByClient(Integer id) {
-        List<Contact> contacts = new ArrayList<>();
-        contacts.addAll(emailRepository.findByCustomerId(id));
-
-
-        System.out.println(contacts);
-        return contacts;
-
-
+    public List<Contact> findCustomerContacts(int id, String type) {
+        if (type == null) {
+            return contactRepository.findByCustomerId(id);
+        }
+        ContactType contactType = ContactType.valueOf(type);
+        return contactRepository.findByCustomerIdAndType(id, contactType);
     }
 }
 
