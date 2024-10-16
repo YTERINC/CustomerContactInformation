@@ -24,11 +24,13 @@ public class CustomerController {
 
     private final CustomerService customerService;
     private final ModelMapper modelMapper;
+    private final CustomerValidator customerValidator;
 
     @Autowired
-    public CustomerController(CustomerService customerService, ModelMapper modelMapper) {
+    public CustomerController(CustomerService customerService, ModelMapper modelMapper, CustomerValidator customerValidator) {
         this.customerService = customerService;
         this.modelMapper = modelMapper;
+        this.customerValidator = customerValidator;
     }
 
     @GetMapping()
@@ -54,6 +56,7 @@ public class CustomerController {
     @PostMapping()
     public ResponseEntity<HttpStatus> addCustomer(@RequestBody @Valid CustomerDTO customerDTO,
                                                   BindingResult bindingResult) { // вернем сообщение со статусом
+        customerValidator.validate(customerDTO, bindingResult);
         ErrorUtility.getErrorBindingResult(bindingResult);
         customerService.addCustomer(convertToCustomer(customerDTO));
         //отправляем HTTP ответ с пустым телом и со статусом 200
@@ -79,7 +82,7 @@ public class CustomerController {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND); // NOT_FOUND - 404
     }
 
-    @ExceptionHandler // ловим исключение, если не получилось добавить
+    @ExceptionHandler // ловим исключение, если не получилось добавить клиента или контакт
     private ResponseEntity<ErrorResponse> handleException(NotCreatedException e) {
         ErrorResponse response = new ErrorResponse(
                 e.getMessage(),

@@ -73,6 +73,10 @@ public class CustomerService {
         ContactType contactType = ContactType.valueOf(type);
         return contactRepository.findByCustomerIdAndType(id, contactType);
     }
+
+    public Optional<Object> findOneByName(String name) {
+        return customerRepository.findByname(name);
+    }
 }
 
 
