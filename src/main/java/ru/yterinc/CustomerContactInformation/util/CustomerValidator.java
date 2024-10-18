@@ -1,6 +1,5 @@
 package ru.yterinc.CustomerContactInformation.util;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
@@ -17,7 +16,6 @@ public class CustomerValidator implements Validator {
     public CustomerValidator(CustomerService customerService) {
         this.customerService = customerService;
     }
-
 
     @Override
     public boolean supports(Class<?> clazz) {

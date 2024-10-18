@@ -18,10 +18,8 @@ import java.util.regex.Pattern;
 @Service
 @Transactional(readOnly = true)
 public class CustomerService {
-
     private final CustomerRepository customerRepository;
     private final ContactRepository contactRepository;
-
 
     @Autowired
     public CustomerService(CustomerRepository customerRepository, ContactRepository contactRepository) {
@@ -64,7 +62,6 @@ public class CustomerService {
         }
         contactRepository.save(contact);
     }
-
 
     public List<Contact> findCustomerContacts(int id, String type) {
         if (type == null) {

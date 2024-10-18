@@ -1,5 +1,7 @@
 package ru.yterinc.CustomerContactInformation.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.modelmapper.ModelMapper;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/customer")
+@Tag(name = "Контроллер информации клиентах", description = "Управление")
 public class CustomerController {
 
     private final CustomerService customerService;
@@ -34,17 +37,20 @@ public class CustomerController {
     }
 
     @GetMapping()
+    @Operation(summary = "Получить всех клиентов")
     public List<CustomerDTO> getCustomers() {
         return customerService.findAll().stream().map(this::convertToCustomerDTO).
                 collect(Collectors.toList()); // Jackson конвертирует объекты в JSON
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Информация клиента по его ID")
     public CustomerDTO getCustomer(@PathVariable("id") int id) {
         return convertToCustomerDTO(customerService.findOne(id));
     }
 
     @GetMapping("/{id}/contacts")
+    @Operation(summary = "Все контакты клиента")
     public List<ContactDTO> getContactsById(@NotNull @PathVariable("id") int id,
                                             @RequestParam(value = "type", required = false) String type) {
         return customerService.findCustomerContacts(id, type)
@@ -53,7 +59,9 @@ public class CustomerController {
                 .collect(Collectors.toList());
     }
 
+
     @PostMapping()
+    @Operation(summary = "Создать нового клиента")
     public ResponseEntity<HttpStatus> addCustomer(@RequestBody @Valid CustomerDTO customerDTO,
                                                   BindingResult bindingResult) { // вернем сообщение со статусом
         customerValidator.validate(customerDTO, bindingResult);
@@ -64,6 +72,7 @@ public class CustomerController {
     }
 
     @PostMapping("/{id}/contact")
+    @Operation(summary = "Добавление нового контакта пользователю")
     public ResponseEntity<HttpStatus> addContact(@PathVariable("id") int id,
                                                  @RequestBody @Valid ContactDTO contactDTO,
                                                  BindingResult bindingResult) {
