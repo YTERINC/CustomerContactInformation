@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/customer")
-@Tag(name = "Контроллер информации клиентах", description = "Управление")
+@Tag(name = "Контроллер информации клиентах и контактах", description = "Управление")
 public class CustomerController {
 
     private final CustomerService customerService;
@@ -36,29 +37,45 @@ public class CustomerController {
         this.customerValidator = customerValidator;
     }
 
+
     @GetMapping()
     @Operation(summary = "Получить всех клиентов")
-    public List<CustomerDTO> getCustomers() {
-        return customerService.findAll().stream().map(this::convertToCustomerDTO).
-                collect(Collectors.toList()); // Jackson конвертирует объекты в JSON
+    public ResponseEntity<List<CustomerDTO>> getCustomers() {
+        List<CustomerDTO> customers = customerService.findAll()
+                .stream()
+                .map(this::convertToCustomerDTO)
+                .collect(Collectors.toList());
+
+        return customers.isEmpty() ?
+                ResponseEntity.noContent().build() :  // 204 No Content
+                ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(customers);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Информация клиента по его ID")
-    public CustomerDTO getCustomer(@PathVariable("id") int id) {
-        return convertToCustomerDTO(customerService.findOne(id));
+    public ResponseEntity<CustomerDTO> getCustomer(@PathVariable("id") int id) {
+        return customerService.findOneCustomer(id)
+                .map(this::convertToCustomerDTO)
+                .map(ResponseEntity::ok) // Возвращаем 200 OK
+                .orElseThrow(CustomerNotFoundException::new); // Ловим исключение или можно было еще вернуть 404
     }
 
     @GetMapping("/{id}/contacts")
     @Operation(summary = "Все контакты клиента")
-    public List<ContactDTO> getContactsById(@NotNull @PathVariable("id") int id,
-                                            @RequestParam(value = "type", required = false) String type) {
-        return customerService.findCustomerContacts(id, type)
+    public ResponseEntity<List<ContactDTO>> getContactsById(@NotNull @PathVariable("id") int id,
+                                                            @RequestParam(value = "type", required = false) String type) {
+        List<ContactDTO> contacts = customerService.findCustomerContacts(id, type)
                 .stream()
-                .map(n -> modelMapper.map(n, ContactDTO.class))
+                .map(contact -> modelMapper.map(contact, ContactDTO.class))
                 .collect(Collectors.toList());
-    }
 
+        if (contacts.isEmpty()) {
+            return ResponseEntity.noContent().build(); // Возвращаем 204 No Content, если контакты не найдены
+        }
+        return ResponseEntity.ok(contacts);  // Возвращаем 200 OK с найденными контактами
+    }
 
     @PostMapping()
     @Operation(summary = "Создать нового клиента")
@@ -78,6 +95,62 @@ public class CustomerController {
                                                  BindingResult bindingResult) {
         ErrorUtility.getErrorBindingResult(bindingResult);
         customerService.addContact(convertToContact(contactDTO), id);
+        return ResponseEntity.ok(HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Удаление клиента по его ID")
+    public ResponseEntity<HttpStatus> deleteCustomer(@PathVariable("id") int id) {
+        if (customerService.findOneCustomer(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        customerService.deleteCustomer(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{customerId}/contact/{contactId}")
+    @Operation(summary = "Удаление контактных данных у клиента")
+    public ResponseEntity<HttpStatus> deleteContact(@PathVariable("customerId") int customerId,
+                                                    @PathVariable("contactId") int contactId) {
+        // Проверяем, существует ли клиент и контакт
+        if (customerService.findOneCustomer(customerId).isEmpty() || customerService.findOneContact(contactId).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        // Удаляем контакт
+        customerService.deleteContact(contactId);
+        return ResponseEntity.ok(HttpStatus.NO_CONTENT); // 204 No Content
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Изменение имени клиента")
+    public ResponseEntity<HttpStatus> updateCustomer(@PathVariable Integer id,
+                                                     @RequestBody @Valid CustomerDTO customerDTO,
+                                                     BindingResult bindingResult) {
+        return customerService.findOneCustomer(id)
+                .map(existingCustomer -> {
+                    customerValidator.validate(customerDTO, bindingResult);
+                    ErrorUtility.getErrorBindingResult(bindingResult);
+                    Customer updatedCustomer = convertToCustomer(customerDTO);
+                    customerService.updateCustomer(id, updatedCustomer);
+                    return ResponseEntity.ok(HttpStatus.OK);
+                })
+                .orElseThrow(CustomerNotFoundException::new);
+    }
+
+    @PutMapping("/{customerId}/contact/{contactId}")
+    @Operation(summary = "Изменение контактных данных у клиента")
+    public ResponseEntity<HttpStatus> updateContact(@PathVariable("customerId") int customerId,
+                                                    @PathVariable("contactId") int contactId,
+                                                    @RequestBody @Valid ContactDTO contactDTO,
+                                                    BindingResult bindingResult) {
+        // Обработка ошибок валидации
+        ErrorUtility.getErrorBindingResult(bindingResult);
+        if (customerService.findOneCustomer(customerId).isEmpty() || customerService.findOneContact(contactId).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        // Изменяем контакт
+        Contact updatedContact = convertToContact(contactDTO);
+        customerService.updateContact(customerId, contactId, updatedContact);
         return ResponseEntity.ok(HttpStatus.OK);
     }
 

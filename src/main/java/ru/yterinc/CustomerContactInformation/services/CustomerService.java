@@ -31,9 +31,23 @@ public class CustomerService {
         return customerRepository.findAll();
     }
 
-    public Customer findOne(int id) {
-        Optional<Customer> foundCustomer = customerRepository.findById(id);
-        return foundCustomer.orElseThrow(CustomerNotFoundException::new); // если клиент не найден, выбрасываем наше исключение
+    public Optional<Customer> findOneCustomer(int id) {
+        return customerRepository.findById(id);
+    }
+
+    public Optional<Contact> findOneContact(int id) {
+        return contactRepository.findById(id);
+    }
+
+    public List<Contact> findCustomerContacts(int id, String type) {
+        if (type == null) {
+            return contactRepository.findByCustomerId(id);
+        }
+        return contactRepository.findByCustomerIdAndType(id, ContactType.valueOf(type));
+    }
+
+    public Optional<Customer> findOneByName(String name) {
+        return customerRepository.findByName(name);
     }
 
     @Transactional
@@ -45,7 +59,37 @@ public class CustomerService {
     public void addContact(Contact contact, int id) {
         contact.setCustomer(customerRepository
                 .findById(id)
-                .orElseThrow(() -> new CustomerNotFoundException(String.format("Customer %s not found", id))));
+                .orElseThrow(CustomerNotFoundException::new));
+        validateContact(contact);
+        contactRepository.save(contact);
+    }
+
+    @Transactional
+    public void deleteCustomer(int id) {
+        customerRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void updateCustomer(Integer id, Customer customer) {
+        customer.setId(id);
+        customerRepository.save(customer);
+    }
+
+    @Transactional
+    public void deleteContact(int id) {
+        contactRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void updateContact(int customerId, int contactId, Contact updatedContact) {
+        validateContact(updatedContact);
+        updatedContact.setId(contactId);
+        updatedContact.setCustomer(customerRepository.findById(customerId)
+                .orElseThrow(CustomerNotFoundException::new));
+        contactRepository.save(updatedContact);
+    }
+
+    private void validateContact(Contact contact) {
         switch (contact.getType()) {
             case PHONE -> {
                 String regexPattern = "^((\\+7|7|8)+([0-9]){10})$";
@@ -60,19 +104,6 @@ public class CustomerService {
                 }
             }
         }
-        contactRepository.save(contact);
-    }
-
-    public List<Contact> findCustomerContacts(int id, String type) {
-        if (type == null) {
-            return contactRepository.findByCustomerId(id);
-        }
-        ContactType contactType = ContactType.valueOf(type);
-        return contactRepository.findByCustomerIdAndType(id, contactType);
-    }
-
-    public Optional<Object> findOneByName(String name) {
-        return customerRepository.findByname(name);
     }
 }
 
