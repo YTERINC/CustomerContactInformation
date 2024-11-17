@@ -1,5 +1,5 @@
 # Этап сборки
-FROM maven:3.8.6-openjdk-17 AS build
+FROM maven:latest AS build
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
@@ -12,7 +12,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Этап выполнения
-FROM openjdk:17-jre-slim
+FROM openjdk:latest
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
