@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  db:
+    container_name: postgresql-container
+    image: postgres:13
+    environment:
+      POSTGRES_DB: cci_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+      - db-data:/var/lib/postgresql/data
+    restart: always
+
+  app:
+    container_name: cci-app-container
+    image: cci-app-image
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    expose:
+      - "8087"
+    environment:
+      SPRING_DATASOURCE.DRIVER-CLASS-NAME: org.postgresql.Driver
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/cci_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SERVER_PORT: 8080
+    depends_on:
+      - db
+    restart: always
+
+volumes:
+  db-data:
