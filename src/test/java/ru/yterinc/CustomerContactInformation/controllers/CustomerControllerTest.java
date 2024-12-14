@@ -33,7 +33,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpStatus.OK;
 
 /************************
- Модульное тестирование
+ Модульное тестирование контроллера
  *************************/
 
 @ExtendWith(MockitoExtension.class) //Мы используем аннотацию @ExtendWith(MockitoExtension.class),
