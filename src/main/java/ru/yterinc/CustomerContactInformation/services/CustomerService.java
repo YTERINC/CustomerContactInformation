@@ -51,17 +51,17 @@ public class CustomerService {
     }
 
     @Transactional
-    public void addCustomer(Customer customer) {
-        customerRepository.save(customer);
+    public Customer addCustomer(Customer customer) {
+        return customerRepository.save(customer);
     }
 
     @Transactional
-    public void addContact(Contact contact, int id) {
+    public Contact addContact(Contact contact, int id) {
         contact.setCustomer(customerRepository
                 .findById(id)
                 .orElseThrow(CustomerNotFoundException::new));
         validateContact(contact);
-        contactRepository.save(contact);
+        return contactRepository.save(contact);
     }
 
     @Transactional
@@ -70,9 +70,10 @@ public class CustomerService {
     }
 
     @Transactional
-    public void updateCustomer(Integer id, Customer customer) {
+    public Customer updateCustomer(Integer id, Customer customer) { //TODO надо попробовать без id
         customer.setId(id);
         customerRepository.save(customer);
+        return customer;
     }
 
     @Transactional

@@ -1,5 +1,7 @@
-package util;
+package ru.yterinc.CustomerContactInformation.util;
 
+import ru.yterinc.CustomerContactInformation.models.Contact;
+import ru.yterinc.CustomerContactInformation.models.ContactType;
 import ru.yterinc.CustomerContactInformation.models.Customer;
 
 import java.util.Collections;
@@ -26,22 +28,38 @@ public class DataUtils {
 
     public static Customer getJohnPersisted() {
         return Customer.builder()
-                .id(11)
+                .id(1)
+                .contactList(Collections.emptyList())
                 .name("John")
                 .build();
     }
 
     public static Customer getMikePersisted() {
         return Customer.builder()
-                .id(12)
+                .id(2)
                 .name("Mike")
                 .build();
     }
 
     public static Customer getFrankPersisted() {
         return Customer.builder()
-                .id(13)
+                .id(3)
                 .name("Frank")
                 .build();
     }
+
+    public static Contact getJohnContactTransient() {
+        return Contact.builder()
+                .contactValue("test123@mail.ru")
+                .type(ContactType.EMAIL)
+                .build();
+    }
+    public static Contact getJohnContactPersisted() {
+        return Contact.builder()
+                .id(1)
+                .contactValue("test123@mail.ru")
+                .type(ContactType.EMAIL)
+                .build();
+    }
+
 }
