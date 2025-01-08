@@ -1,20 +1,24 @@
-package ru.yterinc.CustomerContactInformation.controllers;
-
+package ru.yterinc.CustomerContactInformation.it;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hamcrest.CoreMatchers;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.BDDMockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import ru.yterinc.CustomerContactInformation.dto.CustomerDTO;
 import ru.yterinc.CustomerContactInformation.models.Customer;
+import ru.yterinc.CustomerContactInformation.repositories.CustomerRepository;
 import ru.yterinc.CustomerContactInformation.services.CustomerService;
 import ru.yterinc.CustomerContactInformation.util.CustomerNotFoundException;
 import ru.yterinc.CustomerContactInformation.util.CustomerValidator;
@@ -22,13 +26,16 @@ import ru.yterinc.CustomerContactInformation.util.DataUtils;
 
 import java.util.Optional;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
-@WebMvcTest
-public class CustomerControllerTest {
+@ActiveProfiles("test")
+@AutoConfigureMockMvc
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class ItCustomerControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -36,22 +43,25 @@ public class CustomerControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @Autowired
     private CustomerValidator customerValidator;
 
-    @MockBean
+    @Autowired
     private CustomerService customerService;
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @BeforeEach
+    public void setUp() {
+        customerRepository.deleteAll();
+    }
 
     @Test
     @DisplayName("Test create developer functionality")
     public void givenCustomerDTO_whenCreateCustomer_thenSuccessResponse() throws Exception {
         //given
         CustomerDTO dto = DataUtils.getJohnDTOTransient();
-        Customer customer = DataUtils.getJohnPersisted();
-        BDDMockito.given(customerService.addCustomer(any(Customer.class)))
-                .willReturn(customer);
-//        BDDMockito.doNothing().when(customerValidator).validate(any(CustomerDTO.class), any(BindingResult.class));
-
         //when
         ResultActions resultActions = mockMvc.perform(post("/customer")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -62,7 +72,6 @@ public class CustomerControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.name", CoreMatchers.is("John")));
     }
-
     @Test
     @DisplayName("Test create developer functionality with error")
     public void givenCustomerDTO_whenCreateCustomer_thenErrorResponse() throws Exception {
@@ -70,10 +79,6 @@ public class CustomerControllerTest {
         CustomerDTO dto = CustomerDTO.builder()
                 .name("J")
                 .build();
-        Customer customer = DataUtils.getJohnPersisted();
-        BDDMockito.given(customerService.addCustomer(any(Customer.class)))
-                .willReturn(customer);
-
         //when
         ResultActions resultActions = mockMvc.perform(post("/customer")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -89,11 +94,11 @@ public class CustomerControllerTest {
     @DisplayName("Test update customer functionality")
     public void givenCustomerDto_whenUpdateCustomer_thenSuccessResponse() throws Exception {
         //given
-        CustomerDTO dto = DataUtils.getJohnDTOPersisted();
+        String updateName = "updatedName";
         Customer customer = DataUtils.getJohnPersisted();
-        BDDMockito.given(customerService.updateCustomer(anyInt(), any(Customer.class)))
-                .willReturn(customer);
-        BDDMockito.given(customerService.findOneCustomer(anyInt())).willReturn(Optional.ofNullable(customer));
+        customerRepository.save(customer);
+        CustomerDTO dto = DataUtils.getJohnDTOPersisted();
+        dto.setName(updateName);
         //when
         ResultActions result = mockMvc.perform(put("/customer/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -102,7 +107,7 @@ public class CustomerControllerTest {
         result
                 .andDo(MockMvcResultHandlers.print())
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.name", CoreMatchers.is("John")));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name", CoreMatchers.is(updateName)));
     }
 
     @Test
@@ -110,10 +115,7 @@ public class CustomerControllerTest {
     public void givenCustomerDto_whenUpdateCustomer_thenErrorResponse() throws Exception {
         //given
         CustomerDTO dto = DataUtils.getJohnDTOPersisted();
-        Customer customer = DataUtils.getJohnPersisted();
-        BDDMockito.given(customerService.updateCustomer(anyInt(), any(Customer.class)))
-                .willReturn(customer);
-        BDDMockito.given(customerService.findOneCustomer(anyInt())).willReturn(Optional.empty());
+
         //when
         ResultActions result = mockMvc.perform(put("/customer/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -129,8 +131,8 @@ public class CustomerControllerTest {
     @DisplayName("Test get customer by id functionality")
     public void givenId_whenGetById_thenSuccessResponse() throws Exception {
         //given
-        BDDMockito.given(customerService.findOneCustomer(anyInt()))
-                .willReturn(Optional.ofNullable(DataUtils.getJohnPersisted()));
+        Customer customer = DataUtils.getJohnPersisted();
+        customerRepository.save(customer);
         //when
         ResultActions result = mockMvc.perform(get("/customer/1")
                 .contentType(MediaType.APPLICATION_JSON));
@@ -145,8 +147,6 @@ public class CustomerControllerTest {
     @DisplayName("Test get customer by incorrect id functionality")
     public void givenIncorrectId_whenGetById_thenErrorResponse() throws Exception {
         //given
-        BDDMockito.given(customerService.findOneCustomer(anyInt()))
-                .willThrow(new CustomerNotFoundException());
         //when
         ResultActions result = mockMvc.perform(get("/customer/1")
                 .contentType(MediaType.APPLICATION_JSON));
@@ -161,13 +161,14 @@ public class CustomerControllerTest {
     @DisplayName("Test delete by id functionality")
     public void givenId_whenDelete_thenSuccessResponse() throws Exception {
         //given
-        BDDMockito.doNothing().when(customerService).deleteCustomer(anyInt());
-        BDDMockito.given(customerService.findOneCustomer(anyInt())).willReturn(Optional.ofNullable(DataUtils.getJohnPersisted()));
+        Customer customer = DataUtils.getJohnTransient();
+        customerRepository.save(customer);
         //when
         ResultActions result = mockMvc.perform(delete("/customer/1")
                 .contentType(MediaType.APPLICATION_JSON));
         //then
-        verify(customerService, times(1)).deleteCustomer(anyInt());
+        Customer obtainedCustomer = customerRepository.findById(customer.getId()).orElse(null);
+        assertThat(obtainedCustomer).isNull();
         result
                 .andDo(MockMvcResultHandlers.print())
                 .andExpect(MockMvcResultMatchers.status().isNoContent());
@@ -177,15 +178,14 @@ public class CustomerControllerTest {
     @DisplayName("Test delete by incorrect id functionality")
     public void givenIncorrectId_whenDelete_thenErrorResponse() throws Exception {
         //given
-        BDDMockito.doNothing().when(customerService).deleteCustomer(anyInt());
-        BDDMockito.given(customerService.findOneCustomer(anyInt())).willReturn(Optional.empty());
         //when
         ResultActions result = mockMvc.perform(delete("/customer/1")
                 .contentType(MediaType.APPLICATION_JSON));
         //then
-        verify(customerService, times(0)).deleteCustomer(anyInt());
         result
                 .andDo(MockMvcResultHandlers.print())
                 .andExpect(MockMvcResultMatchers.status().isNotFound());
     }
+
+
 }

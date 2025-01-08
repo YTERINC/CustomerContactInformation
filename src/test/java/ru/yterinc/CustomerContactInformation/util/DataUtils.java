@@ -1,5 +1,6 @@
 package ru.yterinc.CustomerContactInformation.util;
 
+import ru.yterinc.CustomerContactInformation.dto.CustomerDTO;
 import ru.yterinc.CustomerContactInformation.models.Contact;
 import ru.yterinc.CustomerContactInformation.models.ContactType;
 import ru.yterinc.CustomerContactInformation.models.Customer;
@@ -54,6 +55,7 @@ public class DataUtils {
                 .type(ContactType.EMAIL)
                 .build();
     }
+
     public static Contact getJohnContactPersisted() {
         return Contact.builder()
                 .id(1)
@@ -62,4 +64,27 @@ public class DataUtils {
                 .build();
     }
 
+    public static CustomerDTO getJohnDTOTransient() {
+        return CustomerDTO.builder()
+                .name("John")
+                .build();
+    }
+
+    public static CustomerDTO getMikeDTOTransient() {
+        return CustomerDTO.builder()
+                .name("Mike")
+                .build();
+    }
+
+    public static CustomerDTO getFrankDTOTransient() {
+        return CustomerDTO.builder()
+                .name("Frank")
+                .build();
+    }
+
+    public static CustomerDTO getJohnDTOPersisted() {
+        return CustomerDTO.builder()
+                .name("John")
+                .build();
+    }
 }

@@ -79,13 +79,14 @@ public class CustomerController {
 
     @PostMapping()
     @Operation(summary = "Создать нового клиента")
-    public ResponseEntity<HttpStatus> addCustomer(@RequestBody @Valid CustomerDTO customerDTO,
-                                                  BindingResult bindingResult) { // вернем сообщение со статусом
+    public ResponseEntity<CustomerDTO> addCustomer(@RequestBody @Valid CustomerDTO customerDTO,
+                                                   BindingResult bindingResult) { // вернем сообщение со статусом
         customerValidator.validate(customerDTO, bindingResult);
         ErrorUtility.getErrorBindingResult(bindingResult);
-        customerService.addCustomer(convertToCustomer(customerDTO));
+        Customer addedCustomer = customerService.addCustomer(convertToCustomer(customerDTO));
+        CustomerDTO result = modelMapper.map(addedCustomer, CustomerDTO.class);
         //отправляем HTTP ответ с пустым телом и со статусом 200
-        return ResponseEntity.ok(HttpStatus.OK);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/{id}/contact")
@@ -123,7 +124,7 @@ public class CustomerController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Изменение имени клиента")
-    public ResponseEntity<HttpStatus> updateCustomer(@PathVariable Integer id,
+    public ResponseEntity<Customer> updateCustomer(@PathVariable Integer id,
                                                      @RequestBody @Valid CustomerDTO customerDTO,
                                                      BindingResult bindingResult) {
         return customerService.findOneCustomer(id)
@@ -131,8 +132,8 @@ public class CustomerController {
                     customerValidator.validate(customerDTO, bindingResult);
                     ErrorUtility.getErrorBindingResult(bindingResult);
                     Customer updatedCustomer = convertToCustomer(customerDTO);
-                    customerService.updateCustomer(id, updatedCustomer);
-                    return ResponseEntity.ok(HttpStatus.OK);
+                 Customer result =  customerService.updateCustomer(id, updatedCustomer);
+                    return ResponseEntity.ok(result);
                 })
                 .orElseThrow(CustomerNotFoundException::new);
     }
