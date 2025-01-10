@@ -95,12 +95,12 @@ public class ItCustomerControllerTest {
     public void givenCustomerDto_whenUpdateCustomer_thenSuccessResponse() throws Exception {
         //given
         String updateName = "updatedName";
-        Customer customer = DataUtils.getJohnPersisted();
+        Customer customer = DataUtils.getJohnTransient();
         customerRepository.save(customer);
         CustomerDTO dto = DataUtils.getJohnDTOPersisted();
         dto.setName(updateName);
         //when
-        ResultActions result = mockMvc.perform(put("/customer/1")
+        ResultActions result = mockMvc.perform(put("/customer/" + customer.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dto)));
         //then
@@ -131,10 +131,10 @@ public class ItCustomerControllerTest {
     @DisplayName("Test get customer by id functionality")
     public void givenId_whenGetById_thenSuccessResponse() throws Exception {
         //given
-        Customer customer = DataUtils.getJohnPersisted();
+        Customer customer = DataUtils.getJohnTransient();
         customerRepository.save(customer);
         //when
-        ResultActions result = mockMvc.perform(get("/customer/1")
+        ResultActions result = mockMvc.perform(get("/customer/" + customer.getId())
                 .contentType(MediaType.APPLICATION_JSON));
         //then
         result
