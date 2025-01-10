@@ -4,38 +4,32 @@ import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.BDDMockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.yterinc.CustomerContactInformation.dto.CustomerDTO;
 import ru.yterinc.CustomerContactInformation.models.Customer;
 import ru.yterinc.CustomerContactInformation.repositories.CustomerRepository;
 import ru.yterinc.CustomerContactInformation.services.CustomerService;
-import ru.yterinc.CustomerContactInformation.util.CustomerNotFoundException;
 import ru.yterinc.CustomerContactInformation.util.CustomerValidator;
 import ru.yterinc.CustomerContactInformation.util.DataUtils;
 
-import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
+@Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class ItCustomerControllerTest {
+public class ItCustomerControllerTest extends AbstractRestControllerBaseTest{
 
     @Autowired
     private MockMvc mockMvc;
@@ -131,7 +125,8 @@ public class ItCustomerControllerTest {
     @DisplayName("Test get customer by id functionality")
     public void givenId_whenGetById_thenSuccessResponse() throws Exception {
         //given
-        Customer customer = DataUtils.getJohnPersisted();
+        Customer customer = DataUtils.getJohnTransient();
+        customer.setId(1);
         customerRepository.save(customer);
         //when
         ResultActions result = mockMvc.perform(get("/customer/1")
